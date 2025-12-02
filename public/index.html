@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epic Assembly Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #ui > * {
+            pointer-events: auto;
+        }
+
+        /* Lobby Screen */
+        #lobby {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff00;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 400px;
+        }
+
+        #lobby h1 {
+            margin-bottom: 20px;
+            font-size: 2em;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .btn {
+            background: #003300;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #00ff00;
+            color: #000;
+        }
+
+        input[type="text"] {
+            background: #001100;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        /* Game HUD */
+        #hud {
+            display: none;
+            padding: 20px;
+        }
+
+        #stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            padding: 15px;
+            min-width: 250px;
+        }
+
+        #stats .player-stat {
+            margin: 10px 0;
+        }
+
+        #stats .health-bar {
+            background: #001100;
+            height: 20px;
+            margin-top: 5px;
+            border: 1px solid #00ff00;
+            position: relative;
+        }
+
+        #stats .health-fill {
+            background: #00ff00;
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        /* Code Input Area */
+        #codeInput {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff00;
+            padding: 20px;
+            width: 600px;
+            max-width: 90%;
+        }
+
+        #codeTextarea {
+            width: 100%;
+            height: 100px;
+            background: #001100;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 10px;
+            resize: vertical;
+        }
+
+        #challengePrompt {
+            background: rgba(255, 100, 0, 0.2);
+            border: 2px solid #ff6600;
+            color: #ffaa00;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        #output {
+            margin-top: 10px;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #00ff00;
+            min-height: 40px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #00ff00;
+        }
+
+        .error {
+            color: #ff0000;
+        }
+
+        .info {
+            color: #00aaff;
+        }
+
+        /* Game Info */
+        #gameInfo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            padding: 15px;
+            max-width: 300px;
+        }
+
+        #waitingMessage {
+            color: #ffaa00;
+            text-align: center;
+            margin: 20px;
+        }
+
+        .registry-display {
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: #88ff88;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui">
+        <!-- Lobby Screen -->
+        <div id="lobby">
+            <h1>⚡ EPIC ASSEMBLY ARENA ⚡</h1>
+            <p>Battle with IBM z/Architecture Assembly Code</p>
+            <div style="margin: 20px 0;">
+                <label>
+                    <input type="radio" name="mode" value="easy" checked> Easy Mode (Learning)
+                </label>
+                <br>
+                <label>
+                    <input type="radio" name="mode" value="advanced"> Advanced Mode
+                </label>
+            </div>
+            <button class="btn" onclick="game.createGame()">Create Game</button>
+            <div style="margin: 20px 0;">
+                <input type="text" id="gameIdInput" placeholder="Enter Game ID to join">
+                <button class="btn" onclick="game.joinGame()">Join Game</button>
+            </div>
+            <div id="inviteLink" style="display: none; margin-top: 20px;">
+                <p>Share this link:</p>
+                <input type="text" id="inviteLinkText" readonly onclick="this.select()">
+            </div>
+            <div id="waitingMessage" style="display: none;">
+                Waiting for opponent to join...
+            </div>
+        </div>
+
+        <!-- Game HUD -->
+        <div id="hud">
+            <div id="stats">
+                <div class="player-stat">
+                    <div><strong>YOU (Cloud 1)</strong></div>
+                    <div>HP: <span id="p1Health">100</span></div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="p1HealthBar" style="width: 100%"></div>
+                    </div>
+                    <div class="registry-display" id="p1Registers"></div>
+                </div>
+                <hr style="border-color: #00ff00; margin: 15px 0;">
+                <div class="player-stat">
+                    <div><strong>OPPONENT (Cloud 2)</strong></div>
+                    <div>HP: <span id="p2Health">100</span></div>
+                    <div class="health-bar">
+                        <div class="health-fill" id="p2HealthBar" style="width: 100%"></div>
+                    </div>
+                    <div class="registry-display" id="p2Registers"></div>
+                </div>
+            </div>
+
+            <div id="gameInfo">
+                <div><strong>Game Mode:</strong> <span id="gameMode">Easy</span></div>
+                <div><strong>Distance:</strong> <span id="distance">10</span> units</div>
+                <div style="margin-top: 10px; font-size: 0.9em;">
+                    <strong>Available Commands:</strong>
+                    <div style="color: #88ff88; font-size: 0.8em; margin-top: 5px;">
+                        • L R1,value - Load<br>
+                        • A R1,R2 - Add<br>
+                        • S R1,R2 - Subtract<br>
+                        • M R1,R2 - Multiply<br>
+                        • MOVE forward/back<br>
+                        • ATTACK - Attack opponent
+                    </div>
+                </div>
+            </div>
+
+            <div id="codeInput">
+                <div id="challengePrompt"></div>
+                <textarea id="codeTextarea" placeholder="Enter assembly code here...&#10;Example: L R1,5"></textarea>
+                <button class="btn" onclick="game.executeCode()">Execute (Enter)</button>
+                <button class="btn" onclick="game.skipChallenge()" id="skipBtn" style="display: none;">Skip Challenge</button>
+                <div id="output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/assemblyParser.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/referee.js"></script>
+    <script src="js/client.js"></script>
+</body>
+</html>
